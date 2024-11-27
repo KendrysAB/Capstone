@@ -27,125 +27,86 @@ timer_seconds, time_set = 0, 60
 timer_minutes = time_set
 max_time_secs = time_set * 60  # Convert time_set by users to seconds
 
-# Set the path for the USB image folder
+# Define paths
+local_image_folder = "Image"  # Local file path to images
 usb_image_folder = "/media/visualtimer/ESD-USB/Image"  # USB path where images are stored
 
-# Load image filenames from the USB "Image" folder
-if os.path.exists(usb_image_folder):  # Check if the folder exists
-    image_files = [f for f in os.listdir(usb_image_folder) if f.lower().endswith(('.png', '.jpg', '.jpeg', '.bmp'))]  # Array to store image names
+# Dynamically choose image folder based on availability
+if os.path.exists(usb_image_folder):
+    image_folder = usb_image_folder
+    print(f"Using USB image folder: {image_folder}")
 else:
-    image_files = []  # If USB folder doesn't exist, no images are loaded
+    image_folder = local_image_folder
+    print(f"Using local image folder: {image_folder}")
 
+# Load image filenames
+image_files = [
+    f for f in os.listdir(image_folder)
+    if f.lower().endswith(('.png', '.jpg', '.jpeg', '.bmp'))
+]
 current_image_index = 0
 
-# Creates a circular mask for the image
+# Function to crop an image into a circle
 def crop_image_to_circle(image, radius):
-    # Create a surface with an alpha channel (RGBA) to allow transparency
     circle_surface = pygame.Surface((radius * 2, radius * 2), pygame.SRCALPHA)
-
-    # Create a circular mask (White circle on a transparent background)
     pygame.draw.circle(circle_surface, (255, 255, 255), (radius, radius), radius)
-
-    # Copy the image onto the circle surface using the mask
     image_rect = image.get_rect(center=(radius, radius))
-    circle_surface.blit(image, image_rect, special_flags=pygame.BLEND_RGBA_MIN)  # Use blending to apply the mask
-
+    circle_surface.blit(image, image_rect, special_flags=pygame.BLEND_RGBA_MIN)
     return circle_surface
 
-# Display a title bar with shadow
+# Function to display a title bar with shadow
 def display_title(title, color, border):
     pygame.draw.rect(screen, GRAY, (5, 0, 797, 45), border_radius=10)  # Shadow
     pygame.draw.rect(screen, border, (-1, -10, 801, 53), border_radius=10)
-    pygame.draw.rect(screen, color, (0, -10, 800, 50), border_radius=10)  # Rounded title bar
+    pygame.draw.rect(screen, color, (0, -10, 800, 50), border_radius=10)  # Title bar
     font = pygame.font.Font(None, 40)
     text = font.render(title, True, border)
     screen.blit(text, (400 - text.get_width() // 2, 7))
 
-# Display spokes like a clock
-def draw_timer_spokes(color):
-    # Filled circle with outline
-    circle_border = pygame.draw.circle(screen, color, (400, 260), 200, 5)
-
-    # Add twelve spokes (for visual decoration)
-    center_x, center_y, radius = 400, 260, 195
-    even_spoke_length = 30
-    odd_spoke_length = 10
-
-    for i in range(60):
-        angle = math.radians(i * 6)  # 360 degrees divided by 60 = 6 degrees per spoke
-        if i % 5 == 0:  # 5th spokes
-            spoke_length = even_spoke_length
-        else:
-            spoke_length = odd_spoke_length
-
-        start_x = center_x + radius * math.cos(angle)
-        start_y = center_y + radius * math.sin(angle)
-        end_x = center_x + (radius - spoke_length) * math.cos(angle)
-        end_y = center_y + (radius - spoke_length) * math.sin(angle)
-
-        # Draw the line (spoke) from the edge of the circle towards the center
-        pygame.draw.line(screen, color, (start_x, start_y), (end_x, end_y), 3)
-
-# Display the current image in the center of the circle (if available)
+# Function to display the current image in a circular frame
 def display_image():
     if image_files:
-        current_image_path = os.path.join(usb_image_folder, image_files[current_image_index])  # Get path of current image
+        current_image_path = os.path.join(image_folder, image_files[current_image_index])
         try:
-            # Load the image
             image = pygame.image.load(current_image_path)
-            # Crop the image to a circle
             circular_image = crop_image_to_circle(image, 200)
-            # Draw the circular image in the center of the circle
             screen.blit(circular_image, (400 - circular_image.get_width() // 2, 260 - circular_image.get_height() // 2))
         except Exception as e:
             print(f"Error loading image {current_image_path}: {e}")
 
-# Display a circle waning for the timer
-def draw_timer_circle(screen, center, radius, time_remaining, total_time):
-    full_circle = 360  # Full circle in degrees
-    remaining_angle = (time_remaining / total_time) * full_circle  # Remaining angle in degrees
+# Function to draw the timer spokes
+def draw_timer_spokes(color):
+    circle_border = pygame.draw.circle(screen, color, (400, 260), 200, 5)
+    center_x, center_y, radius = 400, 260, 195
+    for i in range(60):
+        angle = math.radians(i * 6)
+        spoke_length = 30 if i % 5 == 0 else 10
+        start_x = center_x + radius * math.cos(angle)
+        start_y = center_y + radius * math.sin(angle)
+        end_x = center_x + (radius - spoke_length) * math.cos(angle)
+        end_y = center_y + (radius - spoke_length) * math.sin(angle)
+        pygame.draw.line(screen, color, (start_x, start_y), (end_x, end_y), 3)
 
-    # Draw the remaining portion as a "pie slice"
-    points = [center]  # Start at the center of the circle
-    for angle in range(0, int(remaining_angle) + 1):
-        x = center[0] + radius * math.cos(math.radians(270 - angle))
-        y = center[1] + radius * math.sin(math.radians(270 - angle))
-        points.append((x, y))
-
-    pygame.draw.polygon(screen, BLUE, points)
-
-# Home screen display function
+# Function to display the home screen
 def display_home_screen():
     global image_button, timer_button
-
     screen.fill(WHITE)
     display_title("Home", RED, DARKRED)
-
-    # Define button dimensions
     button_width, button_height = 200, 200
-    image_button = pygame.Rect(150, 160, button_width, button_height)  # Image button
-    timer_button = pygame.Rect(450, 160, button_width, button_height)  # Timer button
-
-    # Draw image button with shadow, color, and outline
+    image_button = pygame.Rect(150, 160, button_width, button_height)
+    timer_button = pygame.Rect(450, 160, button_width, button_height)
     pygame.draw.rect(screen, GRAY, image_button.move(7, 7), border_radius=15)
     pygame.draw.rect(screen, GREEN, image_button, border_radius=15)
-    pygame.draw.rect(screen, DARKGREEN, image_button.inflate(6, 6), 3, border_radius=18)  # Outline
-
-    # Draw timer button with shadow, color, and outline
+    pygame.draw.rect(screen, DARKGREEN, image_button.inflate(6, 6), 3, border_radius=18)
     pygame.draw.rect(screen, GRAY, timer_button.move(7, 7), border_radius=15)
     pygame.draw.rect(screen, BLUE, timer_button, border_radius=15)
-    pygame.draw.rect(screen, DARKBLUE, timer_button.inflate(6, 6), 3, border_radius=18)  # Outline
-
-    # Load and position icons on buttons
+    pygame.draw.rect(screen, DARKBLUE, timer_button.inflate(6, 6), 3, border_radius=18)
     timer_UI = pygame.image.load('UI/timer.PNG')
     timer_UI = pygame.transform.smoothscale(timer_UI, (150, 150))
-    screen.blit(timer_UI, (timer_button.centerx - 75, timer_button.centery - 75))  # Center the image
-
+    screen.blit(timer_UI, (timer_button.centerx - 75, timer_button.centery - 75))
     camera_UI = pygame.image.load('UI/camera.PNG')
     camera_UI = pygame.transform.smoothscale(camera_UI, (150, 150))
-    screen.blit(camera_UI, (image_button.centerx - 75, image_button.centery - 75))  # Center the image
-
-    # Add text under each button
+    screen.blit(camera_UI, (image_button.centerx - 75, image_button.centery - 75))
     font = pygame.font.Font(None, 24)
     text1 = font.render("Image Selection", True, DARKGREEN)
     text2 = font.render("Timer Countdown", True, DARKBLUE)
@@ -176,98 +137,209 @@ def display_image_selection_screen():
     pygame.draw.rect(screen, BLUE, timer_button, border_radius=15)
     pygame.draw.rect(screen, DARKBLUE, timer_button.inflate(6, 6), 3, border_radius=18)  # Outline
 
-    # Draw arrows to select images
-    left_rect = pygame.Rect(600, 230, 50, 50)
-    right_rect = pygame.Rect(700, 230, 50, 50)
+    # Load and position icons on buttons
+    timer_UI = pygame.image.load('UI/timer.png')
+    timer_UI = pygame.transform.smoothscale(timer_UI, (45, 45))
+    screen.blit(timer_UI, (timer_button.centerx - 23, timer_button.centery - 23))  # Center the image
 
-    pygame.draw.polygon(screen, GREEN, [(left_rect.centerx, left_rect.centery), 
-                                       (left_rect.centerx - 10, left_rect.centery - 20), 
-                                       (left_rect.centerx - 10, left_rect.centery + 20)])
-    pygame.draw.polygon(screen, GREEN, [(right_rect.centerx, right_rect.centery), 
-                                       (right_rect.centerx + 10, right_rect.centery - 20), 
-                                       (right_rect.centerx + 10, right_rect.centery + 20)])
+    home_UI = pygame.image.load('UI/home.png')
+    home_UI = pygame.transform.smoothscale(home_UI, (40, 40))
+    screen.blit(home_UI, (home_button.centerx - 20, home_button.centery - 20))  # Center the image
 
-    # Load and display current image
+    left_UI = pygame.image.load('UI/left.png')
+    left_UI = pygame.transform.smoothscale(left_UI, (75, 75))
+    left_rect = screen.blit(left_UI, (100, 223))
+
+    right_UI = pygame.image.load('UI/right.png')
+    right_UI = pygame.transform.smoothscale(right_UI, (75, 75))
+    right_rect = screen.blit(right_UI, (620, 225))
+
+    pygame.draw.circle(screen, GRAY, (403, 263), 200, 5)
+
     display_image()
 
-# Timer countdown screen display function
+    # Display "Preview of [current image]" text under the circle
+    font = pygame.font.Font(None, 24)
+    if image_files:
+        preview_text = f"Preview of {image_files[current_image_index]}"
+    else:
+        preview_text = "No images available"
+    text = font.render(preview_text, True, DARKGREEN)
+    screen.blit(text, (400 - text.get_width() // 2, 463))  # Center the text under the circle
+
+    draw_timer_spokes(DARKGREEN)
+
+
+# Timer screen display function
 def display_timer_screen():
-    global timer_seconds, timer_minutes
+    global image_button, home_button, plus_button, minus_button, play_button, stop_button, reset_button
+    global timer_minutes, timer_seconds, timer_running, time_set, finish, last_update_time
+
     screen.fill(WHITE)
-    display_title("Timer Countdown", BLUE, DARKBLUE)
+    display_title("Timer", BLUE, DARKBLUE)
 
-    draw_timer_spokes(RED)
-    draw_timer_circle(screen, (400, 260), 195, timer_seconds, max_time_secs)
+    button_width, button_height = 50, 50
+    home_button = pygame.Rect(5, 70, button_width, button_height)  # Home button
+    image_button = pygame.Rect(5, 135, button_width, button_height)  # Image Selection button
+    side_bar = pygame.Rect(-15, 60, 80, 135)
 
-    # Timer countdown with minutes and seconds
-    time_text = f"{timer_minutes:02}:{timer_seconds:02}"
-    font = pygame.font.Font(None, 72)
-    text = font.render(time_text, True, DARKRED)
-    screen.blit(text, (400 - text.get_width() // 2, 260 - text.get_height() // 2))
+    # Draw sidebar with shadow, color, and outline
+    pygame.draw.rect(screen, GRAY, side_bar.move(5, 5), border_radius=15)
+    pygame.draw.rect(screen, DARKBLUE, side_bar.inflate(5, 5), border_radius=17)
+    pygame.draw.rect(screen, BLUE, side_bar, border_radius=15)
 
-# Main game loop to handle events and display appropriate screens
-def main():
-    global current_state, timer_seconds, timer_minutes, max_time_secs, timer_running, last_update_time, time_set, current_image_index
+    # Draw home button with color and outline
+    pygame.draw.rect(screen, RED, home_button, border_radius=15)
+    pygame.draw.rect(screen, DARKRED, home_button.inflate(6, 6), 3, border_radius=18)  # Outline
 
-    while True:
-        screen.fill(WHITE)
-        now = pygame.time.get_ticks()  # Get the current time
-        delta_time = now - last_update_time  # Calculate time difference from last update
+    # Draw image selection button with color and outline
+    pygame.draw.rect(screen, GREEN, image_button, border_radius=15)
+    pygame.draw.rect(screen, DARKGREEN, image_button.inflate(6, 6), 3, border_radius=18)  # Outline
 
-        if current_state == HOME:
-            display_home_screen()
+    # Load and position icons on buttons
+    home_UI = pygame.image.load('UI/home.png')
+    home_UI = pygame.transform.smoothscale(home_UI, (40, 40))
+    screen.blit(home_UI, (home_button.centerx - 20, home_button.centery - 20))  # Center the image
 
-        elif current_state == IMAGE_SELECTION:
-            display_image_selection_screen()
+    image_UI = pygame.image.load('UI/camera.png')
+    image_UI = pygame.transform.smoothscale(image_UI, (45, 45))
+    screen.blit(image_UI, (image_button.centerx - 23, image_button.centery - 23))  # Center the image
 
-        elif current_state == TIMER:
-            display_timer_screen()
+    #sets up the code for the plus and minus buttons
+    plus_button = pygame.Rect(680, 185, 45, 45)  # Plus button
+    minus_button = pygame.Rect(680, 295, 45, 45)  # Minus button
 
-            # Handle timer countdown
-            if timer_running:
-                timer_seconds -= delta_time // 1000
-                last_update_time = now
+    plus_UI = pygame.image.load('UI/plus.png')
+    plus_UI = pygame.transform.smoothscale(plus_UI, (50, 50))
+    screen.blit(plus_UI, plus_button.topleft)  # Use rect to position
 
-                if timer_seconds <= 0:
-                    timer_seconds = 0
-                    timer_minutes -= 1
+    minus_UI = pygame.image.load('UI/minus.png')
+    minus_UI = pygame.transform.smoothscale(minus_UI, (50, 50))
+    screen.blit(minus_UI, minus_button.topleft)  # Use rect to position
 
-                    if timer_minutes <= 0:
-                        timer_running = False
-                        finish = True
-                        # Add a beep or other action when time finishes (optional)
-                        
-        pygame.display.update()
+    #sets up the play, stop, reset buttons
+    play_button = pygame.Rect(110, 145, 45, 45)  # play button
+    stop_button = pygame.Rect(110, 235, 45, 45)  # stop button
+    reset_button = pygame.Rect(110, 325, 45, 45)  # reset button
 
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
+    font = pygame.font.Font(None, 30)
+    play_text = font.render('Play', True, DARKBLUE)
+    screen.blit(play_text, (115, 125))  # Center the text under the circle
+
+    play_UI = pygame.image.load('UI/play.png')
+    play_UI = pygame.transform.smoothscale(play_UI, (50, 50))
+    screen.blit(play_UI, play_button.topleft)  # Use rect to position
+
+    play_text = font.render('Stop', True, DARKBLUE)
+    screen.blit(play_text, (114, 215))  # Center the text under the circle
+
+    stop_UI = pygame.image.load('UI/stop.png')
+    stop_UI = pygame.transform.smoothscale(stop_UI, (50, 50))
+    screen.blit(stop_UI, stop_button.topleft)  # Use rect to position
+
+    play_text = font.render('Reset', True, DARKBLUE)
+    screen.blit(play_text, (107, 305))  # Center the text under the circle
+
+    reset_UI = pygame.image.load('UI/reset.png')
+    reset_UI = pygame.transform.smoothscale(reset_UI, (50, 50))
+    screen.blit(reset_UI, reset_button.topleft)  # Use rect to position
+
+    # Countdown logic
+    if timer_running:
+        current_time = pygame.time.get_ticks()
+        elapsed_time = current_time - last_update_time
+
+        if elapsed_time >= 1000:  # 1000 milliseconds = 1 second
+            last_update_time = current_time
+            if timer_seconds > 0:
+                timer_seconds -= 1
+            elif timer_minutes > 0:
+                timer_minutes -= 1
+                timer_seconds = 59
+            else:
+                timer_running = False  # Stop timer when it reaches zero
+                finish = True
+                # add beeping code here
+
+    # Display digital timer
+    time_text = font.render(f"{timer_minutes:02}:{timer_seconds:02}", True, DARKBLUE)
+    screen.blit(time_text, (375, 462))
+
+    pygame.draw.circle(screen, GRAY, (403, 263), 200, 5)
+
+    display_image()
+
+    # Draw the timer circle
+    temp_time = timer_minutes * 60 + (timer_seconds)
+    if temp_time > 0.1:
+        draw_timer_circle(screen, (400, 260), 198, temp_time, max_time_secs)
+
+    draw_timer_spokes(DARKBLUE)
+
+    # Display the timer text
+    font = pygame.font.Font(None, 36)
+    text = font.render(f"{time_set} minutes", True, DARKBLUE)
+    screen.blit(text, (640, 250))
+
+
+# Main loop
+while True:
+    font = pygame.font.Font(None, 36)
+    for event in pygame.event.get():
+        if event.type == pygame.KEYDOWN:
+            if event.key == pygame.K_ESCAPE:  # Escape key pressed
                 pygame.quit()
                 exit()
+        elif event.type == pygame.MOUSEBUTTONDOWN:  # Detect mouse click
+            mouse_x, mouse_y = event.pos
+            if current_state == HOME:
+                if image_button.collidepoint(mouse_x, mouse_y):  # Click on Image Selection button
+                    current_state = IMAGE_SELECTION
+                elif timer_button.collidepoint(mouse_x, mouse_y):  # Click on Timer button
+                    current_state = TIMER
+            elif current_state == IMAGE_SELECTION:
+                if home_button.collidepoint(mouse_x, mouse_y):  # Click on Home button
+                    current_state = HOME
+                elif timer_button.collidepoint(mouse_x, mouse_y):  # Click on Timer button
+                    current_state = TIMER
+                elif left_rect.collidepoint(event.pos):  # Check if left button was clicked
+                    current_image_index = (current_image_index - 1) % len(image_files)  # Move to previous image, wrap around if at the start
+                elif right_rect.collidepoint(event.pos):  # Check if right button was clicked
+                    current_image_index = (current_image_index + 1) % len(image_files)  # Move to next image, wrap around if at the end
+            elif current_state == TIMER:
+                if home_button.collidepoint(mouse_x, mouse_y):  # Click on Home button
+                    current_state = HOME
+                elif image_button.collidepoint(mouse_x, mouse_y):  # Click on Image Selection button
+                    current_state = IMAGE_SELECTION
+                elif play_button.collidepoint(mouse_x, mouse_y):    # Click on play button
+                    timer_running = True
+                    finish = False
+                elif stop_button.collidepoint(mouse_x, mouse_y) and timer_running == True:    # Click on stop button
+                    timer_running = False
+                elif reset_button.collidepoint(mouse_x, mouse_y):   # Click on reset button
+                    timer_running = False
+                    finish = True
+                    timer_minutes = time_set
+                    timer_seconds = 0
+                    # add stop to beeping here
+                elif plus_button.collidepoint(mouse_x, mouse_y) and finish == True:  # Click on Plus button
+                    if time_set < 60:
+                        time_set += 5
+                        timer_minutes = time_set
+                        max_time_secs = time_set * 60
+                elif minus_button.collidepoint(mouse_x, mouse_y) and finish == True:  # Click on Minus button
+                    if time_set > 5:
+                        time_set -= 5
+                        timer_minutes = time_set
+                        max_time_secs = time_set * 60
 
-            elif event.type == pygame.MOUSEBUTTONDOWN:
-                mouse_x, mouse_y = event.pos
+    # Display the current screen based on state
+    if current_state == HOME:
+        display_home_screen()
+    elif current_state == IMAGE_SELECTION:
+        display_image_selection_screen()
+    elif current_state == TIMER:
+        display_timer_screen()
 
-                if current_state == HOME:
-                    if image_button.collidepoint(mouse_x, mouse_y):
-                        current_state = IMAGE_SELECTION  # Go to Image Selection screen
-                    elif timer_button.collidepoint(mouse_x, mouse_y):
-                        current_state = TIMER  # Go to Timer Countdown screen
-
-                elif current_state == IMAGE_SELECTION:
-                    if home_button.collidepoint(mouse_x, mouse_y):
-                        current_state = HOME  # Go back to Home screen
-                    elif timer_button.collidepoint(mouse_x, mouse_y):
-                        current_state = TIMER  # Go to Timer Countdown screen
-                    elif left_rect.collidepoint(mouse_x, mouse_y):
-                        current_image_index = (current_image_index - 1) % len(image_files)  # Go to previous image
-                    elif right_rect.collidepoint(mouse_x, mouse_y):
-                        current_image_index = (current_image_index + 1) % len(image_files)  # Go to next image
-
-                elif current_state == TIMER:
-                    if mouse_x < 200:  # Stop the timer
-                        timer_running = False
-
-        clock.tick(30)  # 30 FPS limit to control updates
-
-if __name__ == '__main__':
-    main()
+    pygame.display.update()
+    clock.tick(60)
