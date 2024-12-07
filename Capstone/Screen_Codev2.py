@@ -58,12 +58,6 @@ def play_alarm(speaker):
     finally:
         speaker.off()
 
-# Add function to stop the alarm
-def stop_alarm(speaker):
-    speaker.off()
-
-
-
 # Creates a circular mask for the image
 def crop_image_to_circle(image, radius):
     # Create a surface with an alpha channel (RGBA) to allow transparency
