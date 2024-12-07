@@ -178,11 +178,11 @@ def display_home_screen():
     pygame.draw.rect(screen, DARKBLUE, timer_button.inflate(6, 6), 3, border_radius=18)  # Outline
 
     # Load and position icons on buttons
-    timer_UI = pygame.image.load('UI/timer.PNG')
+    timer_UI = pygame.image.load('UI/timer.png')
     timer_UI = pygame.transform.smoothscale(timer_UI, (150, 150))
     screen.blit(timer_UI, (timer_button.centerx - 75, timer_button.centery - 75))  # Center the image
 
-    camera_UI = pygame.image.load('UI/camera.PNG')
+    camera_UI = pygame.image.load('UI/camera.png')
     camera_UI = pygame.transform.smoothscale(camera_UI, (150, 150))
     screen.blit(camera_UI, (image_button.centerx - 75, image_button.centery - 75))  # Center the image
 
