@@ -11,6 +11,8 @@ pygame.init()
 screen = pygame.display.set_mode((800, 480),pygame.NOFRAME)  # Setting screen size
 clock = pygame.time.Clock()  # Sets up clock in project
 
+reset_alarm = False  # This will track if reset was pressed
+
 # Define colors
 WHITE = pygame.Color('antiquewhite')
 RED = pygame.Color('brown1')
@@ -135,18 +137,17 @@ def draw_timer_circle(screen, center, radius, time_remaining, total_time):
     pygame.draw.polygon(screen, BLUE, points)
 
 
-# Function to stop the alarm
-def stop_alarm(speaker):
-    speaker.off()
-
-# Timer countdown function (for example, when timer reaches 0)
 def timer_tick():
-    global timer_running, timer_seconds, timer_minutes, finish
+    global timer_running, timer_seconds, timer_minutes, finish, reset_alarm
+    if reset_alarm:  # If reset is pressed
+        stop_alarm(speaker)  # Stop the alarm
+        finish = True  # Reset the finish flag
+        reset_alarm = False  # Reset the reset flag
+        return
+
     if timer_seconds <= 0 and finish:  # When the timer reaches zero
         finish = False  # Stop the timer
         play_alarm(speaker)  # Trigger the alarm
-    # Additional logic for ticking down the timer and handling timer state changes...
-
 
 
 # Home screen display function
@@ -396,6 +397,7 @@ while True:
                     timer_seconds = 0
                     # add stop to beeping here
                     speaker.off()
+                    reset_alarm = True
                 elif plus_button.collidepoint(mouse_x, mouse_y) and finish == True:  # Click on Plus button
                     if time_set < 60:
                         time_set += 5
