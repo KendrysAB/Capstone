@@ -2,6 +2,10 @@ import pygame
 import math
 import os
 from sys import exit
+from gpiozero import PWMOutputDevice  # Importing PWM for the alarm
+from time import sleep
+import time
+
 
 pygame.init()
 screen = pygame.display.set_mode((800, 480),pygame.NOFRAME)  # Setting screen size
@@ -31,6 +35,34 @@ max_time_secs = time_set * 60  # Convert time_set by users to seconds
 image_folder = "Image"      # file path to images
 image_files = [f for f in os.listdir(image_folder) if f.lower().endswith(('.png', '.jpg', '.jpeg', '.bmp'))]  # array to store image names
 current_image_index = 0
+
+# Initialize PWM for the alarm
+speaker = PWMOutputDevice(pin=18)
+
+# Function to play alarm tones for 5 seconds
+def play_alarm(speaker):
+    try:
+        print("Playing alarm...")
+        start_time = time.time()
+        tones = [440, 880]  # A4 and A5 tones for the alarm
+        while time.time() - start_time < 5:  # Alarm plays for 5 seconds
+            for freq in tones:  # Cycle through the two frequencies
+                speaker.frequency = freq
+                speaker.value = 0.5  # Set volume
+                sleep(0.2)  # Reduced time for faster tone change
+            speaker.off()
+            sleep(0.1)  # Small gap between frequencies
+        print("Alarm finished.")
+    except KeyboardInterrupt:
+        print("Alarm interrupted.")
+    finally:
+        speaker.off()
+
+# Add function to stop the alarm
+def stop_alarm(speaker):
+    speaker.off()
+
+
 
 # Creates a circular mask for the image
 def crop_image_to_circle(image, radius):
@@ -108,6 +140,21 @@ def draw_timer_circle(screen, center, radius, time_remaining, total_time):
 
     pygame.draw.polygon(screen, BLUE, points)
 
+
+# Function to stop the alarm
+def stop_alarm(speaker):
+    speaker.off()
+
+# Timer countdown function (for example, when timer reaches 0)
+def timer_tick():
+    global timer_running, timer_seconds, timer_minutes, finish
+    if timer_seconds <= 0 and finish:  # When the timer reaches zero
+        finish = False  # Stop the timer
+        play_alarm(speaker)  # Trigger the alarm
+    # Additional logic for ticking down the timer and handling timer state changes...
+
+
+
 # Home screen display function
 def display_home_screen():
     global image_button, timer_button
@@ -145,7 +192,6 @@ def display_home_screen():
     text2 = font.render("Timer Countdown", True, DARKBLUE)
     screen.blit(text1, (image_button.centerx - text1.get_width() // 2, image_button.bottom - 20))
     screen.blit(text2, (timer_button.centerx - text2.get_width() // 2, timer_button.bottom - 20))
-
 
 # Image selection screen display function
 def display_image_selection_screen():
@@ -202,7 +248,6 @@ def display_image_selection_screen():
     screen.blit(text, (400 - text.get_width() // 2, 463))  # Center the text under the circle
 
     draw_timer_spokes(DARKGREEN)
-
 
 # Timer screen display function
 def display_timer_screen():
@@ -294,6 +339,7 @@ def display_timer_screen():
                 timer_running = False  # Stop timer when it reaches zero
                 finish = True
                 # add beeping code here
+                timer_tick()
 
     # Display digital timer
     time_text = font.render(f"{timer_minutes:02}:{timer_seconds:02}", True, DARKBLUE)
@@ -314,7 +360,6 @@ def display_timer_screen():
     font = pygame.font.Font(None, 36)
     text = font.render(f"{time_set} minutes", True, DARKBLUE)
     screen.blit(text, (640, 250))
-
 
 # Main loop
 while True:
@@ -356,6 +401,7 @@ while True:
                     timer_minutes = time_set
                     timer_seconds = 0
                     # add stop to beeping here
+                    speaker.off()
                 elif plus_button.collidepoint(mouse_x, mouse_y) and finish == True:  # Click on Plus button
                     if time_set < 60:
                         time_set += 5
