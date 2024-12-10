@@ -34,12 +34,16 @@ timer_minutes = time_set
 max_time_secs = time_set * 60  # Convert time_set by users to seconds
 
 # Load image filenames from the "Image" folder
-image_folder = "Image"      # file path to images
-image_files = [f for f in os.listdir(image_folder) if f.lower().endswith(('.png', '.jpg', '.jpeg', '.bmp'))]  # array to store image names
-current_image_index = 0
+#image_folder = "Image"      # file path to images
+#image_files = [f for f in os.listdir(image_folder) if f.lower().endswith(('.png', '.jpg', '.jpeg', '.bmp'))]  # array to store image names
+#current_image_index = 0
 
 USB_DEVICE_NAME = 'IMAGES' #Change current name to USB device name as needed
 DEVICE_USERNAME = os.getlogin()
+
+# Load image filenames from the "Image" folder
+default_image_folder = "IMAGES"      # file path to images
+image_folder = f"/media/{DEVICE_USERNAME}/{USB_DEVICE_NAME}"
 
 # Initialize PWM for the alarm
 speaker = PWMOutputDevice(pin=18)
