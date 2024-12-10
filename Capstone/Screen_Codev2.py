@@ -69,7 +69,7 @@ def play_alarm(speaker):
 
 #Add function to stop the alarm
 def stop_alarm(speaker):
-    speaker.ff()
+    speaker.off()
 
 def loadImages() -> None:
     global image_files
