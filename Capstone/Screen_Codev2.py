@@ -38,6 +38,9 @@ image_folder = "Image"      # file path to images
 image_files = [f for f in os.listdir(image_folder) if f.lower().endswith(('.png', '.jpg', '.jpeg', '.bmp'))]  # array to store image names
 current_image_index = 0
 
+USB_DEVICE_NAME = 'IMAGES' #Change current name to USB device name as needed
+DEVICE_USERNAME = os.getlogin()
+
 # Initialize PWM for the alarm
 speaker = PWMOutputDevice(pin=18)
 
