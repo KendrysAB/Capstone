@@ -2,15 +2,18 @@ import pygame
 import math
 import os, socket
 from sys import exit
+from gpiozero import PWMOutputDevice
+from time import sleep
+import time
+
 
 pygame.init()
 screen = pygame.display.set_mode((800, 480),pygame.NOFRAME)  # Setting screen size
 clock = pygame.time.Clock()  # Sets up clock in project
-pygame.mixer.init()  # Initialize the pygame mixer
-alarm_sound = pygame.mixer.Sound('alarm.mp3')  # Load the MP3 alarm sound
 
 
-USB_DEVICE_NAME = 'bootfs'
+
+USB_DEVICE_NAME = 'IMAGES'
 DEVICE_USERNAME = os.getlogin()
 
 # Define colors
