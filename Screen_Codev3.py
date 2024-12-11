@@ -52,7 +52,30 @@ def loadImages() -> None:
     else:
         print(default_image_folder)
         image_files = [ os.path.join(default_image_folder, f) for f in os.listdir(default_image_folder) if f.lower().endswith(('.png', '.jpg', '.jpeg', '.bmp'))]
-        
+
+
+# Initialize PWM for the alarm
+speaker = PWMOutputDevice(pin=18)
+
+# Function to play alarm tones for 5 seconds
+def play_alarm(speaker):
+    try:
+        print("Playing alarm...")
+        start_time = time.time()
+        tones = [440, 880]  # A4 and A5 tones for the alarm
+        while time.time() - start_time < 5:  # Alarm plays for 5 seconds
+            for freq in tones:  # Cycle through the two frequencies
+                speaker.frequency = freq
+                speaker.value = 0.5  # Set volume
+                sleep(0.2)  # Reduced time for faster tone change
+            speaker.off()
+            sleep(0.1)  # Small gap between frequencies
+        print("Alarm finished.")
+    except KeyboardInterrupt:
+        print("Alarm interrupted.")
+    finally:
+        speaker.off()
+
 
 # Creates a circular mask for the image
 def crop_image_to_circle(image, radius):
