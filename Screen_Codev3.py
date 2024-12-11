@@ -155,6 +155,26 @@ def draw_timer_circle(screen, center, radius, time_remaining, total_time):
 
     pygame.draw.polygon(screen, BLUE, points)
 
+
+# Function to stop the alarm
+def stop_alarm(speaker):
+    speaker.off()
+
+# Timer countdown function (for example, when timer reaches 0)
+def timer_tick():
+    global timer_running, timer_seconds, timer_minutes, finish, reset_alarm
+    if reset_alarm:  # If reset is pressed
+        stop_alarm(speaker)  # Stop the alarm
+        finish = True  # Reset the finish flag
+        reset_alarm = False  # Reset the reset flag
+        return
+
+    if timer_seconds <= 0 and finish:  # When the timer reaches zero
+        finish = False  # Stop the timer
+        play_alarm(speaker)  # Trigger the alarm
+
+
+
 # Home screen display function
 def display_home_screen():
     global image_button, timer_button
@@ -343,7 +363,7 @@ def display_timer_screen():
                 timer_running = False  # Stop timer when it reaches zero
                 finish = True
                 # add beeping code here
-                alarm_sound.play()  # Play the alarm when time reaches 0
+                timer_tick()  # Play the alarm when time reaches 0
 
 
     # Display digital timer
@@ -409,7 +429,7 @@ while True:
                     timer_minutes = time_set
                     timer_seconds = 0
                     # add stop to beeping here
-                    alarm_sound.stop()
+                    speaker.off()
                 elif plus_button.collidepoint(mouse_x, mouse_y) and finish == True:  # Click on Plus button
                     if time_set < 60:
                         time_set += 5
