@@ -11,7 +11,7 @@ pygame.init()
 screen = pygame.display.set_mode((800, 480),pygame.NOFRAME)  # Setting screen size
 clock = pygame.time.Clock()  # Sets up clock in project
 
-
+reset_alarm = False  # This will track if reset was pressed
 
 USB_DEVICE_NAME = 'IMAGES'
 DEVICE_USERNAME = os.getlogin()
