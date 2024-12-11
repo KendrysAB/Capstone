@@ -430,6 +430,7 @@ while True:
                     timer_seconds = 0
                     # add stop to beeping here
                     speaker.off()
+                    reset_alarm = True
                 elif plus_button.collidepoint(mouse_x, mouse_y) and finish == True:  # Click on Plus button
                     if time_set < 60:
                         time_set += 5
